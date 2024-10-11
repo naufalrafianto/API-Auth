@@ -28,9 +28,6 @@ export class User {
   isActivated: boolean;
 
   @Column({ nullable: true })
-  activationToken: string;
-
-  @Column({ nullable: true })
   refreshToken: string;
 
   @CreateDateColumn()
