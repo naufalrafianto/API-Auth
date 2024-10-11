@@ -51,12 +51,17 @@ export class UsersController {
       return { message: 'Invalid OTP or user ID' };
     }
   }
+  @Post('resend-otp/:userId')
+  async resendOTP(@Param('userId') userId: string) {
+    await this.usersService.resendOTP(userId);
+    return { message: 'OTP resent successfully' };
+  }
 
-  @Get('me') // Endpoint to get the currently authenticated user's details
-  @UseGuards(AccessTokenGuard) // Use the access token guard to protect this route
+  @Get('me')
+  @UseGuards(AccessTokenGuard)
   async getMe(@Request() req): Promise<User> {
-    const userId = req.user.sub; // Get user ID from token payload
-    return this.usersService.findById(userId); // Fetch the user details
+    const userId = req.user.sub;
+    return this.usersService.findById(userId);
   }
 
   @Get(':email')

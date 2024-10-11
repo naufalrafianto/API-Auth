@@ -1,4 +1,9 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './users.entity';
@@ -42,7 +47,11 @@ export class UsersService {
     await this.usersRepository.save(newUser);
 
     const otp = await this.emailVerificationService.generateOTP(newUser);
-    await this.sendVerificationEmail(newUser, otp.code);
+    await this.emailService.sendVerificationEmail(
+      newUser.email,
+      newUser.name,
+      otp.code,
+    );
 
     const response: RegisterResponseDto = {
       success: true,
@@ -59,27 +68,6 @@ export class UsersService {
     };
 
     return response;
-  }
-
-  async sendVerificationEmail(user: User, otpCode: string): Promise<void> {
-    const emailContent = `
-      Hello ${user.name},
-
-      Thank you for registering. Your OTP for account activation is:
-
-      ${otpCode}
-
-      This code will expire in 15 minutes. If you didn't register for an account, please ignore this email.
-
-      Best regards,
-      Your App Team
-    `;
-
-    await this.emailService.sendEmail(
-      user.email,
-      'Your Account Activation OTP',
-      emailContent,
-    );
   }
 
   async activateAccount(userId: string, otpCode: string): Promise<boolean> {
@@ -100,6 +88,25 @@ export class UsersService {
     }
 
     return false;
+  }
+
+  async resendOTP(userId: string): Promise<void> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    try {
+      const newOTP = await this.emailVerificationService.resendOTP(userId);
+      await this.emailService.sendVerificationEmail(
+        user.email,
+        user.name,
+        newOTP.code,
+      );
+    } catch (error) {
+      console.error('Error resending OTP:', error);
+      throw new InternalServerErrorException('Failed to resend OTP');
+    }
   }
   async findByEmail(email: string): Promise<User | undefined> {
     return this.usersRepository.findOne({ where: { email } });

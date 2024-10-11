@@ -29,4 +29,7 @@ export class OTP {
 
   @Column({ default: false })
   used: boolean;
+
+  @Column({ default: 0 })
+  resendAttempts: number;
 }
